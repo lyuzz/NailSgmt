@@ -65,6 +65,10 @@ class NailSegDataset(Dataset):
         else:
             mask_tensor = torch.from_numpy(mask_np).unsqueeze(0).float()
 
+        if mask_tensor.dim() == 2:
+            mask_tensor = mask_tensor.unsqueeze(0)
+        mask_tensor = mask_tensor.float()
+
         return image_tensor, mask_tensor
 
 

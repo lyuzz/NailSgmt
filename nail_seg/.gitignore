@@ -4,3 +4,11 @@ __pycache__/
 runs/
 outputs/
 .DS_Store
+
+# Training artifacts
+runs/
+*.pt
+*.onnx
+
+# Training data
+data/

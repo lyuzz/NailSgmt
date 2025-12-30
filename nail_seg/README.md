@@ -59,4 +59,4 @@ python infer.py --onnx runs/<timestamp>/model.onnx --image path/to/image.jpg --o
 - **Missing masks**: Ensure every image has a matching mask in `masks/<split>` with the same stem.
 - **Shape mismatch**: Ensure masks are single-channel PNG files and images/masks match dimensions before resizing.
 - **CPU training tips**: Reduce `--batch_size`, increase `--num_workers 0`, and lower `--img_size` if needed.
-- **Python 3.10 has been tested and is compatible.
+- **Python 3.10** has been tested and is compatible.

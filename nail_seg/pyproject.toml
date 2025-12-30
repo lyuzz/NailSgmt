@@ -1,0 +1,13 @@
+[project]
+name = "nail_seg"
+version = "0.1.0"
+description = "Binary fingernail segmentation"
+requires-python = ">=3.10"
+
+[tool.black]
+line-length = 88
+
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"

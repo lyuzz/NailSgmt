@@ -69,6 +69,28 @@ def overlay_mask(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return overlay
 
 
+def extract_nail_cutout(image_bgr: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    if mask.ndim != 2:
+        raise ValueError("Mask must be a 2D array")
+    if image_bgr.shape[:2] != mask.shape:
+        raise ValueError("Image and mask must have the same spatial dimensions")
+    image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+    alpha = (mask > 0).astype(np.uint8) * 255
+    return np.dstack((image_rgb, alpha))
+
+
+def extract_nail_bbox(image_bgr: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    mask_bool = mask > 0
+    if not np.any(mask_bool):
+        return extract_nail_cutout(image_bgr, mask)
+    ys, xs = np.where(mask_bool)
+    y_min, y_max = ys.min(), ys.max() + 1
+    x_min, x_max = xs.min(), xs.max() + 1
+    cropped_image = image_bgr[y_min:y_max, x_min:x_max]
+    cropped_mask = mask[y_min:y_max, x_min:x_max]
+    return extract_nail_cutout(cropped_image, cropped_mask)
+
+
 def main() -> None:
     args = parse_args()
     image_path = Path(args.image)
@@ -78,6 +100,10 @@ def main() -> None:
         raise FileNotFoundError(f"Image not found: {image_path}")
     if not onnx_path.exists():
         raise FileNotFoundError(f"ONNX model not found: {onnx_path}")
+
+    image_bgr = cv2.imread(image_path.as_posix(), cv2.IMREAD_COLOR)
+    if image_bgr is None:
+        raise ValueError(f"Failed to read image: {image_path}")
 
     image = np.array(Image.open(image_path).convert("RGB"))
     original_h, original_w = image.shape[:2]
@@ -97,13 +123,22 @@ def main() -> None:
 
     mask_path = out_dir / "mask.png"
     overlay_path = out_dir / "overlay.png"
+    cutout_path = out_dir / "nails_cutout.png"
+    bbox_path = out_dir / "nails_bbox.png"
 
     Image.fromarray(mask).save(mask_path)
     overlay = overlay_mask(image, mask)
     Image.fromarray(overlay).save(overlay_path)
 
+    cutout = extract_nail_cutout(image_bgr, mask)
+    Image.fromarray(cutout).save(cutout_path)
+    bbox_cutout = extract_nail_bbox(image_bgr, mask)
+    Image.fromarray(bbox_cutout).save(bbox_path)
+
     print(f"Saved mask to {mask_path}")
     print(f"Saved overlay to {overlay_path}")
+    print(f"Saved cutout to {cutout_path}")
+    print(f"Saved bbox cutout to {bbox_path}")
 
 
 if __name__ == "__main__":

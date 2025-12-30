@@ -7,3 +7,4 @@ tqdm
 Pillow
 onnx
 onnxruntime
+onnxscript>=0.1.0

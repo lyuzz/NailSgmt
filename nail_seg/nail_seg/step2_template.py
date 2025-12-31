@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+import numpy as np
 from PIL import Image
 
 from .postprocess.extract import NailInstance, extract_nails, save_cutouts
@@ -65,6 +66,16 @@ def _serialize_params(args: argparse.Namespace) -> dict:
         "sort": args.sort,
         "debug": args.debug,
     }
+
+
+def _json_default(value: object) -> object:
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.floating):
+        return float(value)
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    return str(value)
 
 
 def main() -> None:
@@ -163,7 +174,7 @@ def main() -> None:
         }
 
         meta_path = template_dir / "meta.json"
-        meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+        meta_path.write_text(json.dumps(meta, indent=2, default=_json_default), encoding="utf-8")
 
         if args.debug:
             save_overlay_debug(image_bgr, mask_source.masks, debug_dir / "overlay.png")

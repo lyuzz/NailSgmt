@@ -1,8 +1,8 @@
-# Tools
+# Nail Try-On Tool
 
 ## Sequential Nail Virtual Try-On (Diffusers Inpaint + ONNX Nail Segmentation)
 
-`tools/nail_tryon_inpaint.py` applies 5 nail design references to a hand photo by:
+`nail_tryon/nail_tryon_inpaint.py` applies 5 nail design references to a hand photo by:
 
 - Running an ONNX nail segmentation model to obtain up to 5 nail masks.
 - Sorting nails left-to-right by centroid X to bind refs `[0..4]`.
@@ -10,10 +10,21 @@
 - Compositing back using feathered mask alpha so pixels outside masks remain unchanged.
 - Optionally exporting full-size RGBA layers and debug masks.
 
+## Environment setup
+
+Create a dedicated virtual environment inside the folder and install requirements:
+
+```bash
+cd nail_tryon
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
 ### Usage
 
 ```bash
-python tools/nail_tryon_inpaint.py \
+python nail_tryon/nail_tryon_inpaint.py \
   --img_path path/to/hand.jpg \
   --onnx_path path/to/nail_seg.onnx \
   --refs_dir path/to/refs_dir \

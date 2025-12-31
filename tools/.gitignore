@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+runs/
+outputs/
+.DS_Store
+
+# Training artifacts
+runs/
+*.pt
+*.onnx
+
+# Training data
+data/
+
+# 生成的测试结果
+test_out

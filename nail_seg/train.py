@@ -99,7 +99,11 @@ def run_epoch(
     context = torch.enable_grad() if is_train else torch.no_grad()
     with context:
         for images, masks in tqdm(loader, desc=mode, leave=False):
-            images = images.to(device, non_blocking=device.type == "cuda")
+            images = images.to(
+                device,
+                non_blocking=device.type == "cuda",
+                memory_format=torch.channels_last,
+            )
             masks = masks.to(device, non_blocking=device.type == "cuda")
 
             with torch.amp.autocast(device_type=device.type, enabled=scaler is not None):
@@ -149,6 +153,10 @@ def main() -> None:
     set_seed(args.seed, args.deterministic)
 
     device = resolve_device(args.device)
+    if device.type == "cuda":
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.benchmark = not args.deterministic
+        torch.set_float32_matmul_precision("high")
 
     data_dir = Path(args.data_dir)
     train_images = data_dir / "images" / "train"
@@ -172,12 +180,18 @@ def main() -> None:
         else None
     )
 
+    worker_kwargs = {}
+    if args.num_workers > 0:
+        worker_kwargs = {"persistent_workers": True, "prefetch_factor": 2}
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
         num_workers=args.num_workers,
         pin_memory=device.type == "cuda",
+        drop_last=True,
+        **worker_kwargs,
     )
     val_loader = (
         DataLoader(
@@ -186,6 +200,7 @@ def main() -> None:
             shuffle=False,
             num_workers=args.num_workers,
             pin_memory=device.type == "cuda",
+            **worker_kwargs,
         )
         if val_dataset
         else None
@@ -194,7 +209,7 @@ def main() -> None:
     model = MobileUNet(
         encoder_pretrained=args.encoder_pretrained,
         apply_sigmoid=False,
-    ).to(device)
+    ).to(device, memory_format=torch.channels_last)
     log_line(run_paths.log_file, f"Parameters: {count_parameters(model)}")
 
     loss_fn = BCEDiceLoss()

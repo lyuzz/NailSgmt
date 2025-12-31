@@ -423,6 +423,23 @@ def configure_pipeline(model_id: Optional[str]) -> Tuple[object, torch.device, s
     return pipeline, device, chosen_model
 
 
+def resolve_path(path: str, base_dirs: Sequence[str], must_exist: bool = True) -> str:
+    if os.path.isabs(path):
+        if must_exist and not os.path.exists(path):
+            raise FileNotFoundError(f"Path not found: {path}")
+        return path
+
+    candidates = [os.path.abspath(os.path.join(base, path)) for base in base_dirs]
+    if must_exist:
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                return candidate
+        tried = ", ".join(candidates)
+        raise FileNotFoundError(f"Path not found: {path}. Tried: {tried}")
+
+    return candidates[0]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Sequential Nail Virtual Try-On")
     parser.add_argument("--img_path", required=True)
@@ -446,18 +463,29 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
     args = parse_args()
 
-    os.makedirs(args.out_dir, exist_ok=True)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    repo_root = os.path.abspath(os.path.join(script_dir, ".."))
+    base_dirs = [os.getcwd(), script_dir, repo_root]
 
-    img = load_image_rgb(args.img_path)
-    refs = load_refs(args.refs_dir)
+    img_path = resolve_path(args.img_path, base_dirs, must_exist=True)
+    onnx_path = resolve_path(args.onnx_path, base_dirs, must_exist=True)
+    refs_dir = resolve_path(args.refs_dir, base_dirs, must_exist=True)
+    out_dir = resolve_path(args.out_dir, base_dirs, must_exist=False)
 
-    session = ort.InferenceSession(args.onnx_path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
+    os.makedirs(out_dir, exist_ok=True)
+
+    img = load_image_rgb(img_path)
+    refs = load_refs(refs_dir)
+
+    session = ort.InferenceSession(
+        onnx_path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
+    )
     raw_pred = run_onnx_nail_segmentation(session, img)
     masks = postprocess_to_instance_masks(raw_pred, img.shape[:2])
 
     if not masks:
         logging.warning("No nail masks detected.")
-        preview_path = os.path.join(args.out_dir, "preview.png")
+        preview_path = os.path.join(out_dir, "preview.png")
         Image.fromarray(img).save(preview_path)
         return
 
@@ -511,15 +539,15 @@ def main() -> None:
         nail_outputs.append((idx, mask.copy()))
 
         if args.save_debug:
-            mask_path = os.path.join(args.out_dir, f"mask_{idx}.png")
+            mask_path = os.path.join(out_dir, f"mask_{idx}.png")
             cv2.imwrite(mask_path, mask)
 
-    preview_path = os.path.join(args.out_dir, "preview.png")
+    preview_path = os.path.join(out_dir, "preview.png")
     Image.fromarray(composite).save(preview_path)
 
     if args.export_layers:
         for idx, mask in nail_outputs:
-            out_path = os.path.join(args.out_dir, f"nail_{idx}.png")
+            out_path = os.path.join(out_dir, f"nail_{idx}.png")
             export_rgba_layer(composite, mask, out_path)
 
 

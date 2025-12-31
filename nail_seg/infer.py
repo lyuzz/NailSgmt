@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 from pathlib import Path
 
 import cv2
@@ -14,9 +15,10 @@ IMAGENET_STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run ONNX inference for nail segmentation")
-    parser.add_argument("--image", type=str, required=True)
+    parser.add_argument("--input_dir", type=str, required=True)
     parser.add_argument("--onnx", type=str, required=True)
-    parser.add_argument("--out_dir", type=str, default="outputs")
+    parser.add_argument("--output_dir", type=str, default=None)
+    parser.add_argument("--ext", type=str, default="jpg,jpeg,png,webp")
     parser.add_argument("--img_size", type=int, default=256)
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--min_area", type=int, default=500)
@@ -91,16 +93,34 @@ def extract_nail_bbox(image_bgr: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return extract_nail_cutout(cropped_image, cropped_mask)
 
 
-def main() -> None:
-    args = parse_args()
-    image_path = Path(args.image)
-    onnx_path = Path(args.onnx)
+def get_timestamp() -> str:
+    return datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    if not image_path.exists():
-        raise FileNotFoundError(f"Image not found: {image_path}")
-    if not onnx_path.exists():
-        raise FileNotFoundError(f"ONNX model not found: {onnx_path}")
 
+def ensure_dir(path: Path) -> Path:
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def collect_images(input_dir: Path, extensions: set[str]) -> list[Path]:
+    return [
+        path
+        for path in input_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in extensions
+    ]
+
+
+def run_inference(
+    image_path: Path,
+    session: ort.InferenceSession,
+    img_size: int,
+    threshold: float,
+    min_area: int,
+    masks_dir: Path,
+    overlays_dir: Path,
+    cutouts_dir: Path,
+    bboxes_dir: Path,
+) -> None:
     image_bgr = cv2.imread(image_path.as_posix(), cv2.IMREAD_COLOR)
     if image_bgr is None:
         raise ValueError(f"Failed to read image: {image_path}")
@@ -108,23 +128,20 @@ def main() -> None:
     image = np.array(Image.open(image_path).convert("RGB"))
     original_h, original_w = image.shape[:2]
 
-    input_tensor = preprocess(image, args.img_size)
+    input_tensor = preprocess(image, img_size)
 
-    session = ort.InferenceSession(onnx_path.as_posix(), providers=["CPUExecutionProvider"])
     outputs = session.run(None, {"input": input_tensor})
     prob = outputs[0][0, 0]
     prob_resized = cv2.resize(prob, (original_w, original_h), interpolation=cv2.INTER_LINEAR)
 
-    mask = (prob_resized >= args.threshold).astype(np.uint8) * 255
-    mask = postprocess(mask, args.min_area)
+    mask = (prob_resized >= threshold).astype(np.uint8) * 255
+    mask = postprocess(mask, min_area)
 
-    out_dir = Path(args.out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    mask_path = out_dir / "mask.png"
-    overlay_path = out_dir / "overlay.png"
-    cutout_path = out_dir / "nails_cutout.png"
-    bbox_path = out_dir / "nails_bbox.png"
+    stem = image_path.stem
+    mask_path = masks_dir / f"{stem}_mask.png"
+    overlay_path = overlays_dir / f"{stem}_overlay.png"
+    cutout_path = cutouts_dir / f"{stem}_nails_cutout.png"
+    bbox_path = bboxes_dir / f"{stem}_nails_bbox.png"
 
     Image.fromarray(mask).save(mask_path)
     overlay = overlay_mask(image, mask)
@@ -135,10 +152,63 @@ def main() -> None:
     bbox_cutout = extract_nail_bbox(image_bgr, mask)
     Image.fromarray(bbox_cutout).save(bbox_path)
 
-    print(f"Saved mask to {mask_path}")
-    print(f"Saved overlay to {overlay_path}")
-    print(f"Saved cutout to {cutout_path}")
-    print(f"Saved bbox cutout to {bbox_path}")
+
+def main() -> None:
+    args = parse_args()
+    input_dir = Path(args.input_dir)
+    onnx_path = Path(args.onnx)
+
+    if not input_dir.exists():
+        raise FileNotFoundError(f"Input directory not found: {input_dir}")
+    if not input_dir.is_dir():
+        raise NotADirectoryError(f"Input path is not a directory: {input_dir}")
+    if not onnx_path.exists():
+        raise FileNotFoundError(f"ONNX model not found: {onnx_path}")
+
+    session = ort.InferenceSession(onnx_path.as_posix(), providers=["CPUExecutionProvider"])
+    extensions = {f".{ext.strip().lower()}" for ext in args.ext.split(",") if ext.strip()}
+    if not extensions:
+        raise ValueError("No valid extensions provided via --ext.")
+
+    image_paths = collect_images(input_dir, extensions)
+    if not image_paths:
+        raise ValueError(f"No images found in {input_dir} with extensions: {sorted(extensions)}")
+
+    if args.output_dir:
+        out_dir = Path(args.output_dir)
+    else:
+        out_dir = Path("runs") / f"infer_{get_timestamp()}"
+
+    masks_dir = ensure_dir(out_dir / "masks")
+    overlays_dir = ensure_dir(out_dir / "overlays")
+    cutouts_dir = ensure_dir(out_dir / "cutouts")
+    bboxes_dir = ensure_dir(out_dir / "bboxes")
+
+    successes = 0
+    failures: list[Path] = []
+
+    for image_path in image_paths:
+        try:
+            run_inference(
+                image_path=image_path,
+                session=session,
+                img_size=args.img_size,
+                threshold=args.threshold,
+                min_area=args.min_area,
+                masks_dir=masks_dir,
+                overlays_dir=overlays_dir,
+                cutouts_dir=cutouts_dir,
+                bboxes_dir=bboxes_dir,
+            )
+            successes += 1
+        except Exception as exc:  # noqa: BLE001 - continue processing other images
+            failures.append(image_path)
+            print(f"Failed processing {image_path}: {exc}")
+
+    print(f"Images found: {len(image_paths)}")
+    print(f"Succeeded: {successes}")
+    print(f"Failed: {len(failures)}")
+    print(f"Output directory: {out_dir.resolve()}")
 
 
 if __name__ == "__main__":

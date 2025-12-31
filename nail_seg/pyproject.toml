@@ -1,5 +1,5 @@
 [project]
-name = "nail_sort"
+name = "nail_unet"
 version = "0.1.0"
 description = "Fingernail segmentation and sorting utilities"
 requires-python = ">=3.10"

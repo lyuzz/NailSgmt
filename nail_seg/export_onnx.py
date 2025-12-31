@@ -7,7 +7,7 @@ import numpy as np
 import onnxruntime as ort
 import torch
 
-from nail_sort.models import MobileUNet
+from nail_unet.models import MobileUNet
 
 
 def parse_args() -> argparse.Namespace:

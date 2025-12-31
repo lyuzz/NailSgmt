@@ -1,7 +1,7 @@
-# nail_sort
+# nail_unet
 
 Binary fingernail segmentation (background vs fingernail) using a lightweight
-Mobile-UNet. The core Python package now lives at the repo root as `nail_sort`.
+Mobile-UNet. The core Python package now lives at the repo root as `nail_unet`.
 
 ## Dataset preparation
 Expected directory structure:

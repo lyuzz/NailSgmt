@@ -14,8 +14,8 @@ NailSgmt is a lightweight fingernail segmentation project built around a Mobile-
 ```
 .
 ├── nail_seg/           # Main package, training/inference/export scripts
-│   ├── README.md       # Detailed usage for training, inference, and export
-│   └── nail_seg/       # Python package (datasets, models, losses, metrics)
+│   └── README.md       # Detailed usage for training, inference, and export
+├── nail_sort/          # Python package (datasets, models, losses, metrics, sorting)
 └── nail_tryon/         # Nail virtual try-on utility (see nail_tryon/README.md)
 ```
 
@@ -60,6 +60,9 @@ NailSgmt is a lightweight fingernail segmentation project built around a Mobile-
    ```
 
 For full details on dataset preparation, troubleshooting, and advanced options, see [`nail_seg/README.md`](nail_seg/README.md).
+
+The `nail_sort` module orders the five detected fingers from thumb to pinky
+(大拇指 → 食指 → 中指 → 无名指 → 小拇指) for downstream template generation.
 
 ## Nail virtual try-on setup
 

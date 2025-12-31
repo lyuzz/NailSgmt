@@ -1,6 +1,8 @@
-# Step 2 Template Pipeline
+# Nail Sort Template Pipeline
 
-This module builds on Step 1 masks to produce per-nail cutouts, normalized nails, and a template board image.
+This module builds on Step 1 masks to produce per-nail cutouts, normalized nails, and a
+template board image. It sorts the five detected nails from thumb to pinky
+(大拇指 → 食指 → 中指 → 无名指 → 小拇指).
 
 ## Install Dependencies
 
@@ -15,7 +17,7 @@ pip install -r nail_seg/requirements.txt
 Single image (auto-detect masks/json):
 
 ```bash
-python -m nail_seg.step2_template \
+python -m nail_sort.step2_template \
   --input path/to/image.png \
   --output runs/step2_demo \
   --mode auto \
@@ -32,7 +34,7 @@ python -m nail_seg.step2_template \
 Directory input (auto mode only):
 
 ```bash
-python -m nail_seg.step2_template \
+python -m nail_sort.step2_template \
   --input path/to/images_dir \
   --output runs/step2_batch \
   --debug
@@ -41,7 +43,7 @@ python -m nail_seg.step2_template \
 Explicit mask directory (single image):
 
 ```bash
-python -m nail_seg.step2_template \
+python -m nail_sort.step2_template \
   --input path/to/image.png \
   --output runs/step2_demo \
   --mode mask_dir \
@@ -51,7 +53,7 @@ python -m nail_seg.step2_template \
 JSON polygons (single image):
 
 ```bash
-python -m nail_seg.step2_template \
+python -m nail_sort.step2_template \
   --input path/to/image.png \
   --output runs/step2_demo \
   --mode json \

@@ -6,7 +6,6 @@ import math
 from pathlib import Path
 
 import torch
-from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -85,7 +84,7 @@ def run_epoch(
     loader: DataLoader,
     loss_fn,
     device: torch.device,
-    scaler: GradScaler | None,
+    scaler: torch.amp.GradScaler | None,
     optimizer=None,
     grad_clip: float | None = None,
 ) -> dict[str, float]:
@@ -103,7 +102,7 @@ def run_epoch(
             images = images.to(device, non_blocking=device.type == "cuda")
             masks = masks.to(device, non_blocking=device.type == "cuda")
 
-            with autocast(enabled=scaler is not None):
+            with torch.amp.autocast(device_type=device.type, enabled=scaler is not None):
                 preds = model(images)
                 loss = loss_fn(preds, masks)
                 preds_prob = torch.sigmoid(preds)
@@ -204,7 +203,7 @@ def main() -> None:
         optimizer, T_max=args.epochs, eta_min=args.lr / 50
     )
 
-    scaler = GradScaler(enabled=device.type == "cuda")
+    scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda")
 
     start_epoch = 0
     best_metric = 0.0

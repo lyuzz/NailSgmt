@@ -41,13 +41,13 @@ Replace `cu126` with the CUDA version supported by your driver (see the PyTorch 
 ## Training
 
 ```bash
-python train.py --data_dir data --img_size 256 --batch_size 16 --epochs 50 --lr 3e-4
+python train.py --data_dir data --epochs 50
 ```
 
 GPU training (CUDA):
 
 ```bash
-python train.py --data_dir data --device cuda --save_samples
+python train.py --data_dir data --device cuda --epochs 50 --save_samples
 ```
 
 If you have multiple GPUs, specify an index (e.g. `--device cuda:1`).

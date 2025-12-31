@@ -45,13 +45,14 @@ python train.py --data_dir data --resume runs/<timestamp>/last.pt
 ## Export to ONNX
 
 ```bash
-python export_onnx.py --checkpoint runs/<timestamp>/best.pt --out_path runs/<timestamp>/model.onnx
+python export_onnx.py --checkpoint runs/<timestamp>/best.pt
 ```
+The exported file will be saved alongside the checkpoint as `runs/<timestamp>/best.onnx`.
 
 ## Inference
 
 ```bash
-python infer.py --onnx runs/<timestamp>/model.onnx --input_dir path/to/images
+python infer.py --onnx runs/<timestamp>/best.onnx --input_dir path/to/images
 ```
 
 ## Troubleshooting

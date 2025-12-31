@@ -13,7 +13,6 @@ from nail_seg.models import MobileUNet
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Export nail segmentation model to ONNX")
     parser.add_argument("--checkpoint", type=str, required=True)
-    parser.add_argument("--out_path", type=str, required=True)
     parser.add_argument("--img_size", type=int, default=256)
     parser.add_argument("--device", type=str, default="cpu")
     return parser.parse_args()
@@ -33,8 +32,12 @@ def main() -> None:
     model.eval()
 
     dummy = torch.zeros(1, 3, args.img_size, args.img_size, device=device)
-    out_path = Path(args.out_path)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_dir = checkpoint_path.parent
+    out_name = f"{checkpoint_path.stem}.onnx"
+    out_path = out_dir / out_name
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if out_path.exists():
+        raise FileExistsError(f"ONNX output already exists: {out_path}")
 
     torch.onnx.export(
         model,
@@ -54,7 +57,7 @@ def main() -> None:
     if not (0.0 <= prob.min() and prob.max() <= 1.0):
         raise RuntimeError("ONNX output is not in [0, 1] range")
 
-    print(f"Exported ONNX model to {out_path}")
+    print(f"ONNX model exported to: {out_path}")
 
 
 if __name__ == "__main__":

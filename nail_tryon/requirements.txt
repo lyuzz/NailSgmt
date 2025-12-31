@@ -1,0 +1,9 @@
+diffusers
+transformers
+accelerate
+safetensors
+torch
+opencv-python
+onnxruntime
+numpy
+Pillow

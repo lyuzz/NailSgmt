@@ -16,7 +16,7 @@ NailSgmt is a lightweight fingernail segmentation project built around a Mobile-
 ├── nail_seg/           # Main package, training/inference/export scripts
 │   ├── README.md       # Detailed usage for training, inference, and export
 │   └── nail_seg/       # Python package (datasets, models, losses, metrics)
-└── tools/              # Supporting utilities (see tools/README.md)
+└── nail_tryon/         # Nail virtual try-on utility (see nail_tryon/README.md)
 ```
 
 ## Quick start
@@ -60,6 +60,20 @@ NailSgmt is a lightweight fingernail segmentation project built around a Mobile-
    ```
 
 For full details on dataset preparation, troubleshooting, and advanced options, see [`nail_seg/README.md`](nail_seg/README.md).
+
+## Nail virtual try-on setup
+
+The virtual try-on script has its own virtual environment inside `nail_tryon/` so
+the dependency set stays isolated from the training stack.
+
+```bash
+cd nail_tryon
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Usage details and flags are documented in [`nail_tryon/README.md`](nail_tryon/README.md).
 
 ## License
 

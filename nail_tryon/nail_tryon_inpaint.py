@@ -1,7 +1,7 @@
 """Sequential Nail Virtual Try-On (Diffusers Inpaint + ONNX Nail Segmentation).
 
 Usage:
-  python tools/nail_tryon_inpaint.py \
+  python nail_tryon/nail_tryon_inpaint.py \
     --img_path <path/to/hand.jpg> \
     --onnx_path <path/to/nail_seg.onnx> \
     --refs_dir <dir/with/5_ref_images> \

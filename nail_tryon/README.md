@@ -40,6 +40,10 @@ python nail_tryon/nail_tryon_inpaint.py \
   --save_debug 1
 ```
 
+```bash
+python nail_tryon_inpaint.py --img_path data/hand/img1.png --onnx_path data/best.onnx --refs_dir data/refs --out_dir runs/outputs --model_id diffusers/stable-diffusion-xl-1.0-inpainting-0.1
+```
+
 ### Outputs
 
 - `out_dir/preview.png`

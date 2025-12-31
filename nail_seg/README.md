@@ -51,7 +51,7 @@ python export_onnx.py --checkpoint runs/<timestamp>/best.pt --out_path runs/<tim
 ## Inference
 
 ```bash
-python infer.py --onnx runs/<timestamp>/model.onnx --image path/to/image.jpg --out_dir outputs
+python infer.py --onnx runs/<timestamp>/model.onnx --input_dir path/to/images --output_dir outputs
 ```
 
 ## Troubleshooting

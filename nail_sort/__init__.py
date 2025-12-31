@@ -1,4 +1,4 @@
-"""nail_seg package."""
+"""nail_sort package."""
 
 from .models import MobileUNet
 

@@ -1,6 +1,7 @@
-# nail_seg
+# nail_sort
 
-Binary fingernail segmentation (background vs fingernail) using a lightweight Mobile-UNet.
+Binary fingernail segmentation (background vs fingernail) using a lightweight
+Mobile-UNet. The core Python package now lives at the repo root as `nail_sort`.
 
 ## Dataset preparation
 Expected directory structure:

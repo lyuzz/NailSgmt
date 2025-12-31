@@ -1,7 +1,4 @@
-# nail_unet
-
-Binary fingernail segmentation (background vs fingernail) using a lightweight
-Mobile-UNet. The core Python package now lives at the repo root as `nail_unet`.
+# Nail_Seg
 
 ## Dataset preparation
 Expected directory structure:

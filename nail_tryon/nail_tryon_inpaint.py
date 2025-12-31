@@ -389,18 +389,32 @@ def export_rgba_layer(
 
 
 def configure_pipeline(model_id: Optional[str]) -> Tuple[object, torch.device, str]:
-    if torch.cuda.is_available():
+    def is_sdxl_model(value: str) -> bool:
+        lowered = value.lower()
+        return "sdxl" in lowered or "stable-diffusion-xl" in lowered
+
+    has_cuda = torch.cuda.is_available()
+    if has_cuda:
         device = torch.device("cuda")
         dtype = torch.float16
-        pipeline_cls = StableDiffusionXLInpaintPipeline
-        default_model = DEFAULT_SDXL_INPAINT_MODEL
     else:
         device = torch.device("cpu")
         dtype = torch.float32
-        pipeline_cls = StableDiffusionInpaintPipeline
-        default_model = DEFAULT_SD15_INPAINT_MODEL
 
-    chosen_model = model_id or default_model
+    if model_id:
+        if is_sdxl_model(model_id):
+            pipeline_cls = StableDiffusionXLInpaintPipeline
+        else:
+            pipeline_cls = StableDiffusionInpaintPipeline
+        chosen_model = model_id
+    else:
+        if has_cuda:
+            pipeline_cls = StableDiffusionXLInpaintPipeline
+            chosen_model = DEFAULT_SDXL_INPAINT_MODEL
+        else:
+            pipeline_cls = StableDiffusionInpaintPipeline
+            chosen_model = DEFAULT_SD15_INPAINT_MODEL
+
     pipeline = pipeline_cls.from_pretrained(
         chosen_model,
         torch_dtype=dtype,

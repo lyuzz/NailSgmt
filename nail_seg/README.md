@@ -64,7 +64,7 @@ If you have multiple GPUs, specify an index (e.g. `--device cuda:1`).
 Resume training:
 
 ```bash
-python train.py --data_dir data --resume runs/<timestamp>/last.pt
+python train.py --data_dir data --resume runs/<timestamp>/last.pt --epochs 100 --batch_size 16 --save_samples
 ```
 
 ## Export to ONNX

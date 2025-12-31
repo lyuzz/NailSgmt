@@ -39,15 +39,17 @@ def main() -> None:
     if out_path.exists():
         raise FileExistsError(f"ONNX output already exists: {out_path}")
 
+    opset_version = 18
     torch.onnx.export(
         model,
         dummy,
         out_path.as_posix(),
-        opset_version=17,
+        opset_version=opset_version,
         input_names=["input"],
         output_names=["prob"],
         dynamic_axes={"input": {0: "batch"}, "prob": {0: "batch"}},
     )
+    print(f"Exported ONNX opset version: {opset_version}")
 
     sess = ort.InferenceSession(out_path.as_posix(), providers=["CPUExecutionProvider"])
     outputs = sess.run(None, {"input": dummy.cpu().numpy()})

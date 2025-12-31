@@ -38,7 +38,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--deterministic", action="store_true")
     parser.add_argument("--resume", type=str, default=None)
     parser.add_argument("--encoder_pretrained", action="store_true")
-    parser.add_argument("--device", type=str, default=None)
+    parser.add_argument("--device", type=str, default="auto")
     parser.add_argument("--save_samples", action="store_true")
     parser.add_argument("--val_every", type=int, default=1)
     parser.add_argument("--grad_clip", type=float, default=1.0)
@@ -100,8 +100,8 @@ def run_epoch(
     context = torch.enable_grad() if is_train else torch.no_grad()
     with context:
         for images, masks in tqdm(loader, desc=mode, leave=False):
-            images = images.to(device)
-            masks = masks.to(device)
+            images = images.to(device, non_blocking=device.type == "cuda")
+            masks = masks.to(device, non_blocking=device.type == "cuda")
 
             with autocast(enabled=scaler is not None):
                 preds = model(images)
@@ -134,13 +134,21 @@ def run_epoch(
     return avg_metrics
 
 
+def resolve_device(device_arg: str) -> torch.device:
+    if not device_arg or device_arg.lower() == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    device = torch.device(device_arg)
+    if device.type == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA requested but no GPU was detected. Use --device cpu instead.")
+    return device
+
+
 def main() -> None:
     args = parse_args()
     set_seed(args.seed, args.deterministic)
 
-    device = torch.device(
-        args.device if args.device else ("cuda" if torch.cuda.is_available() else "cpu")
-    )
+    device = resolve_device(args.device)
 
     data_dir = Path(args.data_dir)
     train_images = data_dir / "images" / "train"
@@ -150,6 +158,9 @@ def main() -> None:
 
     run_paths = create_run_dir()
     log_line(run_paths.log_file, f"Device: {device}")
+    if device.type == "cuda":
+        cuda_index = device.index if device.index is not None else 0
+        log_line(run_paths.log_file, f"CUDA device: {torch.cuda.get_device_name(cuda_index)}")
 
     train_dataset = NailSegDataset(
         train_images, train_masks, build_train_transforms(args.img_size)
@@ -239,7 +250,7 @@ def main() -> None:
 
         if args.save_samples:
             images, masks = next(iter(train_loader))
-            images = images.to(device)
+            images = images.to(device, non_blocking=device.type == "cuda")
             with torch.no_grad():
                 preds = model(images)
             save_sample_grid(images, masks, preds, run_paths.samples / f"epoch_{epoch+1:03d}.png")

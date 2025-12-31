@@ -362,8 +362,10 @@ def inpaint_roi(
         strength=strength,
         generator=generator,
     )
-    output = result.images[0]
-    return np.array(output.convert("RGB"), dtype=np.uint8)
+    output = result.images[0].convert("RGB")
+    if output.size != (roi_pil.width, roi_pil.height):
+        output = output.resize((roi_pil.width, roi_pil.height), resample=Image.BICUBIC)
+    return np.array(output, dtype=np.uint8)
 
 
 def composite_roi(

@@ -21,6 +21,9 @@ Expected directory structure:
 - Masks are single-channel; any value > 0 is treated as nail.
 
 Use `scripts/make_splits.py` if you have a flat dataset.
+```bash
+python scripts/make_splits.py --images_dir images --masks_dir masks --out_dir data/train --train_ratio 0.9
+```
 
 ## Installation (Windows)
 

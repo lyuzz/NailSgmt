@@ -33,6 +33,12 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+For CPU-only usage, install the default PyTorch build:
+
+```bash
+pip3 install torch torchvision
+```
+
 For CUDA acceleration, install the NVIDIA GPU build of PyTorch that matches your CUDA version:
 
 ```bash

@@ -50,7 +50,7 @@ Replace `cu126` with the CUDA version supported by your driver (see the PyTorch 
 ## Training
 
 ```bash
-python train.py --data_dir data --epochs 50
+python train.py --data_dir data --epochs 50 --save_samples
 ```
 
 GPU training (CUDA):

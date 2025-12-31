@@ -106,6 +106,7 @@ def run_epoch(
             with autocast(enabled=scaler is not None):
                 preds = model(images)
                 loss = loss_fn(preds, masks)
+                preds_prob = torch.sigmoid(preds)
 
             if is_train:
                 optimizer.zero_grad(set_to_none=True)
@@ -122,7 +123,7 @@ def run_epoch(
                         torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
                     optimizer.step()
 
-            batch_metrics = compute_batch_metrics(preds, masks)
+            batch_metrics = compute_batch_metrics(preds_prob, masks)
             total_loss += loss.item()
             for key in metric_sums:
                 metric_sums[key] += batch_metrics[key]
@@ -191,7 +192,10 @@ def main() -> None:
         else None
     )
 
-    model = MobileUNet(encoder_pretrained=args.encoder_pretrained).to(device)
+    model = MobileUNet(
+        encoder_pretrained=args.encoder_pretrained,
+        apply_sigmoid=False,
+    ).to(device)
     log_line(run_paths.log_file, f"Parameters: {count_parameters(model)}")
 
     loss_fn = BCEDiceLoss()
@@ -253,7 +257,13 @@ def main() -> None:
             images = images.to(device, non_blocking=device.type == "cuda")
             with torch.no_grad():
                 preds = model(images)
-            save_sample_grid(images, masks, preds, run_paths.samples / f"epoch_{epoch+1:03d}.png")
+                preds_prob = torch.sigmoid(preds)
+            save_sample_grid(
+                images,
+                masks,
+                preds_prob,
+                run_paths.samples / f"epoch_{epoch+1:03d}.png",
+            )
 
         metric_source = val_metrics if val_metrics else train_metrics
         current_metric = metric_source["iou"]

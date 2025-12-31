@@ -68,9 +68,10 @@ class SimpleEncoder(nn.Module):
 
 
 class MobileUNet(nn.Module):
-    def __init__(self, encoder_pretrained: bool = True):
+    def __init__(self, encoder_pretrained: bool = True, apply_sigmoid: bool = True):
         super().__init__()
         self.encoder_pretrained = encoder_pretrained
+        self.apply_sigmoid = apply_sigmoid
         self.use_torchvision = True
 
         try:
@@ -141,4 +142,6 @@ class MobileUNet(nn.Module):
 
         x = F.interpolate(x, size=orig_size, mode="bilinear", align_corners=False)
         x = self.final_conv(x)
-        return torch.sigmoid(x)
+        if self.apply_sigmoid:
+            return torch.sigmoid(x)
+        return x

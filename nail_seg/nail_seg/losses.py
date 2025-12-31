@@ -21,12 +21,12 @@ class DiceLoss(nn.Module):
 class BCEDiceLoss(nn.Module):
     def __init__(self, bce_weight: float = 0.5, dice_weight: float = 0.5) -> None:
         super().__init__()
-        self.bce = nn.BCELoss()
+        self.bce = nn.BCEWithLogitsLoss()
         self.dice = DiceLoss()
         self.bce_weight = bce_weight
         self.dice_weight = dice_weight
 
     def forward(self, preds: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         bce_loss = self.bce(preds, targets)
-        dice_loss = self.dice(preds, targets)
+        dice_loss = self.dice(torch.sigmoid(preds), targets)
         return self.bce_weight * bce_loss + self.dice_weight * dice_loss

@@ -52,8 +52,9 @@ The exported file will be saved alongside the checkpoint as `runs/<timestamp>/be
 ## Inference
 
 ```bash
-python infer.py --onnx runs/<timestamp>/best.onnx --input_dir path/to/images
+python infer.py --onnx runs/<timestamp>/best.onnx --input_dir data/test
 ```
+Place the test dataset in the data/test directory before running the command.
 
 ## Troubleshooting
 

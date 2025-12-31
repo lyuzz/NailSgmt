@@ -81,7 +81,7 @@ def build_train_transforms(img_size: int) -> A.Compose:
             A.ColorJitter(p=0.3),
             A.GaussianBlur(p=0.2),
             A.GaussNoise(p=0.2),
-            A.ShiftScaleRotate(shift_limit=0.05, scale_limit=0.1, rotate_limit=10, p=0.5),
+            A.Affine(translate_percent=0.05, scale=(0.9, 1.1), rotate=10, p=0.5),
             A.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD),
             ToTensorV2(),
         ]

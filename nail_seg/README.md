@@ -22,11 +22,11 @@ Expected directory structure:
 
 Use `scripts/make_splits.py` if you have a flat dataset.
 
-## Installation
+## Installation (Windows)
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 

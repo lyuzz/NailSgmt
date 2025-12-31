@@ -47,7 +47,7 @@ python train.py --data_dir data --epochs 50
 GPU training (CUDA):
 
 ```bash
-python train.py --data_dir data --device cuda --epochs 50 --save_samples
+python train.py --data_dir data --device cuda --epochs 50 --batch_size 16 --save_samples
 ```
 
 If you have multiple GPUs, specify an index (e.g. `--device cuda:1`).

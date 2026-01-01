@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 from pathlib import Path
 
 import cv2
@@ -97,6 +98,11 @@ def ensure_dir(path: Path) -> Path:
     return path
 
 
+def timestamped_infer_dir(base_dir: Path) -> Path:
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return base_dir / f"infer_{timestamp}"
+
+
 def collect_images(input_dir: Path, extensions: set[str]) -> list[Path]:
     return [
         path
@@ -172,7 +178,7 @@ def main() -> None:
     if args.output_dir:
         out_dir = Path(args.output_dir)
     else:
-        out_dir = onnx_path.parent / "infer"
+        out_dir = timestamped_infer_dir(onnx_path.parent)
 
     masks_dir = ensure_dir(out_dir / "masks")
     overlays_dir = ensure_dir(out_dir / "overlays")

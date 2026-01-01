@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from unet.dataset import NailSegDataset, build_train_transforms, build_val_transforms
-from unet.losses import BCEDiceLoss
+from unet.losses import BCEDiceLoss, DiceBoundaryLoss, DiceFocalLoss
 from unet.metrics import compute_batch_metrics
 from unet.models import MobileUNet
 from unet.utils import (
@@ -41,6 +41,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--save_samples", action="store_true")
     parser.add_argument("--val_every", type=int, default=1)
     parser.add_argument("--grad_clip", type=float, default=1.0)
+    parser.add_argument(
+        "--loss",
+        type=str,
+        default="dice_boundary",
+        choices=("bce_dice", "dice_boundary", "dice_focal"),
+    )
+    parser.add_argument("--boundary_weight", type=float, default=0.3)
+    parser.add_argument("--boundary_width", type=int, default=1)
+    parser.add_argument("--focal_weight", type=float, default=0.3)
+    parser.add_argument("--mask_erosion_px", type=int, default=1)
+    parser.add_argument("--roi_focus", action="store_true")
+    parser.add_argument("--roi_padding", type=float, default=0.15)
     return parser.parse_args()
 
 
@@ -179,11 +191,22 @@ def main() -> None:
         log_line(run_paths.log_file, f"CUDA device: {torch.cuda.get_device_name(cuda_index)}")
 
     train_dataset = NailSegDataset(
-        train_images, train_masks, build_train_transforms(args.img_size)
+        train_images,
+        train_masks,
+        build_train_transforms(args.img_size),
+        mask_erosion_px=args.mask_erosion_px,
+        roi_focus=args.roi_focus,
+        roi_padding=args.roi_padding,
     )
     has_val = val_images.exists() and val_masks.exists()
     val_dataset = (
-        NailSegDataset(val_images, val_masks, build_val_transforms(args.img_size))
+        NailSegDataset(
+            val_images,
+            val_masks,
+            build_val_transforms(args.img_size),
+            mask_erosion_px=0,
+            roi_focus=False,
+        )
         if has_val
         else None
     )
@@ -220,7 +243,16 @@ def main() -> None:
     ).to(device, memory_format=torch.channels_last)
     log_line(run_paths.log_file, f"Parameters: {count_parameters(model)}")
 
-    loss_fn = BCEDiceLoss()
+    if args.loss == "bce_dice":
+        loss_fn = BCEDiceLoss()
+    elif args.loss == "dice_focal":
+        loss_fn = DiceFocalLoss(dice_weight=1.0 - args.focal_weight, focal_weight=args.focal_weight)
+    else:
+        loss_fn = DiceBoundaryLoss(
+            dice_weight=1.0 - args.boundary_weight,
+            boundary_weight=args.boundary_weight,
+            width=args.boundary_width,
+        )
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, T_max=args.epochs, eta_min=args.lr / 50

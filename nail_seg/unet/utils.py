@@ -10,6 +10,7 @@ from typing import Iterable
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from PIL import Image
 from torchvision.utils import make_grid
 
@@ -77,15 +78,34 @@ def save_sample_grid(
         image_np = image.permute(1, 2, 0).numpy()
         image_np = (image_np * np.array([0.229, 0.224, 0.225]) + np.array([0.485, 0.456, 0.406]))
         image_np = np.clip(image_np * 255.0, 0, 255).astype(np.uint8)
-        mask_np = (mask.squeeze(0).numpy() > 0.5).astype(np.uint8) * 255
-        pred_np = (pred.squeeze(0).numpy() > 0.5).astype(np.uint8) * 255
+        mask_bin = (mask.squeeze(0).numpy() > 0.5).astype(np.uint8)
+        pred_bin = (pred.squeeze(0).numpy() > 0.5).astype(np.uint8)
+        mask_np = mask_bin * 255
+        pred_np = pred_bin * 255
 
         mask_rgb = np.stack([mask_np, np.zeros_like(mask_np), np.zeros_like(mask_np)], axis=-1)
         pred_rgb = np.stack([np.zeros_like(pred_np), pred_np, np.zeros_like(pred_np)], axis=-1)
         overlay = np.clip(image_np * 0.7 + mask_rgb * 0.3, 0, 255).astype(np.uint8)
         overlay_pred = np.clip(image_np * 0.7 + pred_rgb * 0.3, 0, 255).astype(np.uint8)
 
-        stacked = np.concatenate([image_np, overlay, overlay_pred], axis=1)
+        mask_boundary = compute_boundary_map(
+            torch.from_numpy(mask_bin).unsqueeze(0).unsqueeze(0).float(), width=1
+        )
+        pred_boundary = compute_boundary_map(
+            torch.from_numpy(pred_bin).unsqueeze(0).unsqueeze(0).float(), width=1
+        )
+        mask_boundary_np = (mask_boundary.squeeze().numpy() * 255).astype(np.uint8)
+        pred_boundary_np = (pred_boundary.squeeze().numpy() * 255).astype(np.uint8)
+        mask_boundary_rgb = np.stack(
+            [np.zeros_like(mask_boundary_np), mask_boundary_np, mask_boundary_np], axis=-1
+        )
+        pred_boundary_rgb = np.stack(
+            [pred_boundary_np, pred_boundary_np, np.zeros_like(pred_boundary_np)], axis=-1
+        )
+
+        stacked = np.concatenate(
+            [image_np, overlay, overlay_pred, mask_boundary_rgb, pred_boundary_rgb], axis=1
+        )
         overlays.append(torch.from_numpy(stacked).permute(2, 0, 1))
 
     grid = make_grid(overlays, nrow=1)
@@ -110,3 +130,13 @@ def to_numpy(tensor: torch.Tensor) -> np.ndarray:
 def iter_batches(loader: Iterable) -> Iterable:
     for batch in loader:
         yield batch
+
+
+def compute_boundary_map(mask: torch.Tensor, width: int = 1) -> torch.Tensor:
+    if width <= 0:
+        return torch.zeros_like(mask)
+    kernel = 2 * width + 1
+    dilation = F.max_pool2d(mask, kernel_size=kernel, stride=1, padding=width)
+    erosion = 1.0 - F.max_pool2d(1.0 - mask, kernel_size=kernel, stride=1, padding=width)
+    boundary = (dilation - erosion).clamp(min=0.0, max=1.0)
+    return boundary

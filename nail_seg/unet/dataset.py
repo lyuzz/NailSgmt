@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import albumentations as A
+import cv2
 import numpy as np
 import torch
 from albumentations.pytorch import ToTensorV2
@@ -15,10 +16,21 @@ IMAGENET_STD = (0.229, 0.224, 0.225)
 
 
 class NailSegDataset(Dataset):
-    def __init__(self, images_dir: Path, masks_dir: Path, transform: Optional[Callable] = None):
+    def __init__(
+        self,
+        images_dir: Path,
+        masks_dir: Path,
+        transform: Optional[Callable] = None,
+        mask_erosion_px: int = 0,
+        roi_focus: bool = False,
+        roi_padding: float = 0.15,
+    ):
         self.images_dir = images_dir
         self.masks_dir = masks_dir
         self.transform = transform
+        self.mask_erosion_px = mask_erosion_px
+        self.roi_focus = roi_focus
+        self.roi_padding = roi_padding
 
         if not images_dir.exists():
             raise FileNotFoundError(f"Images directory not found: {images_dir}")
@@ -43,6 +55,38 @@ class NailSegDataset(Dataset):
     def __len__(self) -> int:
         return len(self.image_paths)
 
+    def _erode_mask(self, mask: np.ndarray) -> np.ndarray:
+        if self.mask_erosion_px <= 0:
+            return mask
+        kernel_size = 2 * self.mask_erosion_px + 1
+        kernel = np.ones((kernel_size, kernel_size), np.uint8)
+        eroded = cv2.erode(mask.astype(np.uint8), kernel, iterations=1)
+        return eroded.astype(np.float32)
+
+    def _apply_roi_crop(self, image: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        if not self.roi_focus:
+            return image, mask
+
+        ys, xs = np.where(mask > 0)
+        if len(xs) == 0 or len(ys) == 0:
+            return image, mask
+
+        height, width = mask.shape[:2]
+        x_min, x_max = xs.min(), xs.max()
+        y_min, y_max = ys.min(), ys.max()
+
+        pad_x = int((x_max - x_min + 1) * self.roi_padding)
+        pad_y = int((y_max - y_min + 1) * self.roi_padding)
+
+        x_min = max(x_min - pad_x, 0)
+        x_max = min(x_max + pad_x, width - 1)
+        y_min = max(y_min - pad_y, 0)
+        y_max = min(y_max + pad_y, height - 1)
+
+        image = image[y_min : y_max + 1, x_min : x_max + 1]
+        mask = mask[y_min : y_max + 1, x_min : x_max + 1]
+        return image, mask
+
     def __getitem__(self, idx: int):
         image = Image.open(self.image_paths[idx]).convert("RGB")
         mask = Image.open(self.mask_paths[idx]).convert("L")
@@ -50,6 +94,8 @@ class NailSegDataset(Dataset):
         image_np = np.array(image)
         mask_np = np.array(mask)
         mask_np = (mask_np > 0).astype(np.float32)
+        mask_np = self._erode_mask(mask_np)
+        image_np, mask_np = self._apply_roi_crop(image_np, mask_np)
 
         if self.transform is not None:
             transformed = self.transform(image=image_np, mask=mask_np)

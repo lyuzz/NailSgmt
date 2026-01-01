@@ -177,7 +177,7 @@ def main() -> None:
     if args.output_dir:
         out_dir = Path(args.output_dir)
     else:
-        out_dir = Path("runs") / f"infer_{get_timestamp()}"
+        out_dir = onnx_path.parent / "infer" / get_timestamp()
 
     masks_dir = ensure_dir(out_dir / "masks")
     overlays_dir = ensure_dir(out_dir / "overlays")

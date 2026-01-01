@@ -165,6 +165,14 @@ def main() -> None:
     val_masks = data_dir / "masks" / "val"
 
     run_paths = create_run_dir()
+    run_config = {
+        **vars(args),
+        "resolved_device": str(device),
+    }
+    log_line(
+        run_paths.log_file,
+        f"Run config: {json.dumps(run_config, ensure_ascii=False)}",
+    )
     log_line(run_paths.log_file, f"Device: {device}")
     if device.type == "cuda":
         cuda_index = device.index if device.index is not None else 0

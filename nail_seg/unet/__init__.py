@@ -1,4 +1,4 @@
-"""nail_unet package."""
+"""unet package."""
 
 from .models import MobileUNet
 

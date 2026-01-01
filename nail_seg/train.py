@@ -9,11 +9,11 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from nail_unet.dataset import NailSegDataset, build_train_transforms, build_val_transforms
-from nail_unet.losses import BCEDiceLoss
-from nail_unet.metrics import compute_batch_metrics
-from nail_unet.models import MobileUNet
-from nail_unet.utils import (
+from unet.dataset import NailSegDataset, build_train_transforms, build_val_transforms
+from unet.losses import BCEDiceLoss
+from unet.metrics import compute_batch_metrics
+from unet.models import MobileUNet
+from unet.utils import (
     RunPaths,
     count_parameters,
     create_run_dir,

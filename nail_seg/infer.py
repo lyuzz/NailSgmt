@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
 from pathlib import Path
 
 import cv2
@@ -93,10 +92,6 @@ def extract_nail_bbox(image_bgr: np.ndarray, mask: np.ndarray) -> np.ndarray:
     return extract_nail_cutout(cropped_image, cropped_mask)
 
 
-def get_timestamp() -> str:
-    return datetime.now().strftime("%Y%m%d_%H%M%S")
-
-
 def ensure_dir(path: Path) -> Path:
     path.mkdir(parents=True, exist_ok=True)
     return path
@@ -177,7 +172,7 @@ def main() -> None:
     if args.output_dir:
         out_dir = Path(args.output_dir)
     else:
-        out_dir = Path("runs") / f"infer_{get_timestamp()}"
+        out_dir = onnx_path.parent / "infer"
 
     masks_dir = ensure_dir(out_dir / "masks")
     overlays_dir = ensure_dir(out_dir / "overlays")
